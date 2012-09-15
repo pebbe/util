@@ -26,6 +26,7 @@ type LinesReader struct {
 	r         *bufio.Reader
 	f         *os.File
 	isOpen    bool
+	isStdin   bool
 	interrupt chan bool
 }
 
@@ -37,6 +38,12 @@ func NewLinesReader(filename string) (r *LinesReader, err error) {
 	}
 	r.r = bufio.NewReader(r.f)
 	r.isOpen = true
+	return
+}
+
+func NewLinesReaderStdin() (r *LinesReader) {
+	r = &LinesReader{interrupt: make(chan bool), isStdin: true, isOpen: true}
+	r.r = bufio.NewReader(os.Stdin)
 	return
 }
 
@@ -91,9 +98,11 @@ func (r *LinesReader) Break() {
 func (r *LinesReader) close() {
 	if r.isOpen {
 		r.isOpen = false
-		e := r.f.Close()
-		if e != nil {
-			panic(e)
+		if !r.isStdin {
+			e := r.f.Close()
+			if e != nil {
+				panic(e)
+			}
 		}
 	}
 }
