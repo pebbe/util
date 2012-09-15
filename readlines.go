@@ -8,29 +8,58 @@ import (
 )
 
 /*
-Example usage:
+### Opening a LinesReader ###
 
-    r, err := util.NewLinesReader(filename)
+Example 1:
+
+    r, err := util.NewFileLinesReader(filename)
     util.CheckErr(err)
+
+Example 2:
+
+    r = util.NewReaderLinesReader(os.Stdin)
+
+Example 3:
+
+    f, e := os.Open(filename)
+    util.CheckErr(e)
+    defer f.Close()
+
+    rd, e := gzip.NewReader(f)
+    util.CheckErr(e)
+    defer rd.Close()
+
+    r = util.NewReaderLinesReader(rd)
+
+### Using a LinesReader ###
+
+Example 1:
+
+    for line := range r.ReadLines() {
+        // do something with line
+    }
+
+Example 2:
+
     for line := range r.ReadLines() {
         // do something with line
 
         // if you need to stop before all lines are read:
         r.Break()
-        break     // not needed at end of loop
+        break     // not needed at bottom of loop
 
-        // do something with line
+        // do more things
     }
 */
 type LinesReader struct {
 	r         *bufio.Reader
 	f         *os.File
 	isOpen    bool
-	isStdin   bool
+	needClose bool
 	interrupt chan bool
 }
 
-func NewLinesReader(filename string) (r *LinesReader, err error) {
+func NewFileLinesReader(filename string) (r *LinesReader, err error) {
 	r = &LinesReader{interrupt: make(chan bool)}
 	r.f, err = os.Open(filename)
 	if err != nil {
@@ -38,12 +67,15 @@ func NewLinesReader(filename string) (r *LinesReader, err error) {
 	}
 	r.r = bufio.NewReader(r.f)
 	r.isOpen = true
+	r.needClose = true
 	return
 }
 
-func NewLinesReaderStdin() (r *LinesReader) {
-	r = &LinesReader{interrupt: make(chan bool), isStdin: true, isOpen: true}
-	r.r = bufio.NewReader(os.Stdin)
+func NewReaderLinesReader(rd io.Reader) (r *LinesReader) {
+
+	r = &LinesReader{interrupt: make(chan bool)}
+	r.r = bufio.NewReader(rd)
+	r.isOpen = true
 	return
 }
 
@@ -96,13 +128,12 @@ func (r *LinesReader) Break() {
 }
 
 func (r *LinesReader) close() {
-	if r.isOpen {
-		r.isOpen = false
-		if !r.isStdin {
-			e := r.f.Close()
-			if e != nil {
-				panic(e)
-			}
+	r.isOpen = false
+	if r.needClose {
+		r.needClose = false
+		e := r.f.Close()
+		if e != nil {
+			panic(e)
 		}
 	}
 }
