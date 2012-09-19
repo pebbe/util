@@ -12,12 +12,12 @@ import (
 
 Example 1:
 
-    r, err := util.NewFileLinesReader(filename)
+    r, err := util.NewLinesReaderFromFile(filename)
     util.CheckErr(err)
 
 Example 2:
 
-    r = util.NewReaderLinesReader(os.Stdin)
+    r = util.NewLinesReaderFromReader(os.Stdin)
 
 Example 3:
 
@@ -29,7 +29,7 @@ Example 3:
     util.CheckErr(e)
     defer rd.Close()
 
-    r = util.NewReaderLinesReader(rd)
+    r = util.NewLinesReaderFromReader(rd)
 
 ### Using a LinesReader ###
 
@@ -59,7 +59,7 @@ type LinesReader struct {
 	interrupt chan bool
 }
 
-func NewFileLinesReader(filename string) (r *LinesReader, err error) {
+func NewLinesReaderFromFile(filename string) (r *LinesReader, err error) {
 	r = &LinesReader{interrupt: make(chan bool)}
 	r.f, err = os.Open(filename)
 	if err != nil {
@@ -71,7 +71,7 @@ func NewFileLinesReader(filename string) (r *LinesReader, err error) {
 	return
 }
 
-func NewReaderLinesReader(rd io.Reader) (r *LinesReader) {
+func NewLinesReaderFromReader(rd io.Reader) (r *LinesReader) {
 
 	r = &LinesReader{interrupt: make(chan bool)}
 	r.r = bufio.NewReader(rd)
