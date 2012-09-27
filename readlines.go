@@ -121,6 +121,50 @@ func (r *LinesReader) ReadLines() <-chan string {
 	return ch
 }
 
+func (r *LinesReader) ReadLinesBytes() <-chan []byte {
+	if !r.isOpen {
+		panic("LinesReader is closed")
+	}
+	ch := make(chan []byte)
+	go func() {
+	ReadLinesLoop:
+		for {
+			var buf bytes.Buffer
+			if !r.isOpen {
+				break ReadLinesLoop
+			}
+			for {
+				line, isPrefix, err := r.r.ReadLine()
+				buf.Write(line)
+				if err == io.EOF {
+					r.close()
+					break
+				}
+				if err != nil {
+					panic(err)
+				}
+				if !isPrefix {
+					break
+				}
+			}
+
+			s := make([]byte, buf.Len())
+			copy(s, buf.Bytes())
+			if !r.isOpen && len(s) == 0 {
+				break ReadLinesLoop
+			}
+			select {
+			case ch <- s:
+			case <-r.interrupt:
+				break ReadLinesLoop
+			}
+		}
+		r.close()
+		close(ch)
+	}()
+	return ch
+}
+
 func (r *LinesReader) Break() {
 	if r.isOpen {
 		r.interrupt <- true
