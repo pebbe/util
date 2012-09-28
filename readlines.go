@@ -83,7 +83,7 @@ func (r *LinesReader) ReadLines() <-chan string {
 	if !r.isOpen {
 		panic("LinesReader is closed")
 	}
-	ch := make(chan string, 100)
+	ch := make(chan string)
 	go func() {
 	ReadLinesLoop:
 		for {
@@ -125,7 +125,7 @@ func (r *LinesReader) ReadLinesBytes() <-chan []byte {
 	if !r.isOpen {
 		panic("LinesReader is closed")
 	}
-	ch := make(chan []byte, 100)
+	ch := make(chan []byte)
 	go func() {
 	ReadLinesLoop:
 		for {
