@@ -1,17 +1,32 @@
 package util
 
 import (
-	"fmt"
-	"os"
+	"log"
 	"runtime"
 )
 
 func CheckErr(err error) {
 	if err != nil {
+		log.SetFlags(0)
 		_, filename, lineno, ok := runtime.Caller(1)
 		if ok {
-			fmt.Fprintf(os.Stderr, "%v:%v: %v\n", filename, lineno, err)
+			log.Fatalf("%v:%v: %v\n", filename, lineno, err)
+		} else {
+			log.Fatalln(err)
 		}
-		panic(err)
+	}
+}
+
+func WarnErr(err error) {
+	if err != nil {
+		f := log.Flags()
+		log.SetFlags(0)
+		_, filename, lineno, ok := runtime.Caller(1)
+		if ok {
+			log.Printf("%v:%v: %v\n", filename, lineno, err)
+		} else {
+			log.Println(err)
+		}
+		log.SetFlags(f)
 	}
 }
