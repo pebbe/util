@@ -3,8 +3,11 @@ package util
 import (
 	"bufio"
 	"bytes"
+	"compress/bzip2"
+	"compress/gzip"
 	"io"
 	"os"
+	"strings"
 )
 
 /*
@@ -31,6 +34,10 @@ Example 3:
 
     r = util.NewLinesReaderFromReader(rd)
 
+Since NewLinesReaderFromFile also handles .gz and .bz2 directly,
+you can use example 1 instead of example 3 for these files.
+
+
 ### Using a LinesReader ###
 
 Example 1:
@@ -53,19 +60,36 @@ Example 2:
 */
 type LinesReader struct {
 	r         *bufio.Reader
+	rz        *gzip.Reader
+	bz2       io.Reader
 	f         *os.File
 	isOpen    bool
+	isGzip    bool
 	needClose bool
 	interrupt chan bool
 }
 
+// Either plain text file, gzip'ed text file with name ending in .gz, or bzip2'ed text file with name ending in .bz2
 func NewLinesReaderFromFile(filename string) (r *LinesReader, err error) {
 	r = &LinesReader{interrupt: make(chan bool)}
 	r.f, err = os.Open(filename)
 	if err != nil {
 		return
 	}
-	r.r = bufio.NewReader(r.f)
+	if strings.HasSuffix(filename, ".gz") {
+		r.rz, err = gzip.NewReader(r.f)
+		if err != nil {
+			r.f.Close()
+			return
+		}
+		r.r = bufio.NewReader(r.rz)
+		r.isGzip = true
+	} else if strings.HasSuffix(filename, ".bz2") {
+		r.bz2 = bzip2.NewReader(r.f)
+		r.r = bufio.NewReader(r.bz2)
+	} else {
+		r.r = bufio.NewReader(r.f)
+	}
 	r.isOpen = true
 	r.needClose = true
 	return
@@ -175,6 +199,12 @@ func (r *LinesReader) close() {
 	r.isOpen = false
 	if r.needClose {
 		r.needClose = false
+		if r.isGzip {
+			e := r.rz.Close()
+			if e != nil {
+				panic(e)
+			}
+		}
 		e := r.f.Close()
 		if e != nil {
 			panic(e)
