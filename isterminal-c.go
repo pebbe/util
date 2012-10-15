@@ -12,8 +12,6 @@ import (
 )
 
 /*
-So far, tested on: linux windows
-
 Examples:
 
     term, err := IsTerminal(os.Stdin)
