@@ -9,8 +9,7 @@ import (
 )
 
 var (
-	modkernel32 = syscall.MustLoadDLL("kernel32.dll")
-
+	modkernel32        = syscall.MustLoadDLL("kernel32.dll")
 	procGetConsoleMode = modkernel32.MustFindProc("GetConsoleMode")
 )
 
@@ -35,9 +34,9 @@ Examples:
     term, err := IsTerminal(os.Stdout)
     term, err := IsTerminal(os.Stderr)
 */
-func IsTerminal(file *os.File) bool {
+func IsTerminal(file *os.File) bool, err {
 	var st uint32
-	return getConsoleMode(syscall.Handle(file.Fd()), &st) == nil
+	return getConsoleMode(syscall.Handle(file.Fd()), &st) == nil, nil
 }
 
 func getConsoleMode(hConsoleHandle syscall.Handle, lpMode *uint32) (err error) {
