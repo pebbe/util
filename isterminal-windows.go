@@ -34,7 +34,7 @@ Examples:
     term, err := IsTerminal(os.Stdout)
     term, err := IsTerminal(os.Stderr)
 */
-	func IsTerminal(file *os.File) (bool, err) {
+	func IsTerminal(file *os.File) (bool, error) {
 	var st uint32
 	return getConsoleMode(syscall.Handle(file.Fd()), &st) == nil, nil
 }
