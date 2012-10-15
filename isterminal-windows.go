@@ -8,6 +8,12 @@ import (
 	"unsafe"
 )
 
+var (
+	modkernel32 = syscall.MustLoadDLL("kernel32.dll")
+
+	procGetConsoleMode = modkernel32.MustFindProc("GetConsoleMode")
+)
+
 /*
 func IsTerminal(file *os.File) (bool, error) {
 	s, e := file.Stat()
