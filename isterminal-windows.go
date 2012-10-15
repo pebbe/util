@@ -31,7 +31,7 @@ Examples:
 */
 func IsTerminal(file *os.File) bool {
 	var st uint32
-	return getConsoleMode(file.Fd(), &st) == nil
+	return getConsoleMode(syscall.Handle(file.Fd()), &st) == nil
 }
 
 func getConsoleMode(hConsoleHandle syscall.Handle, lpMode *uint32) (err error) {
