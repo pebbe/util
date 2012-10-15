@@ -1,5 +1,7 @@
 // +build windows
 
+// with code copied from github.com/kless/termina by Jonas mg
+
 package util
 
 import (
@@ -14,29 +16,15 @@ var (
 )
 
 /*
-func IsTerminal(file *os.File) (bool, error) {
-	s, e := file.Stat()
-	if e != nil {
-		return true, nil
-	}
-	m := s.Mode()
-	if m&os.ModeDevice != 0 {
-		return true, nil
-	}
-	return false, nil
-}
-*/
-
-/*
 Examples:
 
-    term, err := IsTerminal(os.Stdin)
-    term, err := IsTerminal(os.Stdout)
-    term, err := IsTerminal(os.Stderr)
+    IsTerminal(os.Stdin)
+    IsTerminal(os.Stdout)
+    IsTerminal(os.Stderr)
 */
-	func IsTerminal(file *os.File) (bool, error) {
+func IsTerminal(file *os.File) bool {
 	var st uint32
-	return getConsoleMode(syscall.Handle(file.Fd()), &st) == nil, nil
+	return getConsoleMode(syscall.Handle(file.Fd()), &st) == nil
 }
 
 func getConsoleMode(hConsoleHandle syscall.Handle, lpMode *uint32) (err error) {

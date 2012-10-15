@@ -2,18 +2,15 @@
 
 package util
 
-import (
-	"os"
-	"errors"
-)
+import "os"
 
 /*
 Examples:
 
-    term, err := IsTerminal(os.Stdin)
-    term, err := IsTerminal(os.Stdout)
-    term, err := IsTerminal(os.Stderr)
+    IsTerminal(os.Stdin)
+    IsTerminal(os.Stdout)
+    IsTerminal(os.Stderr)
 */
-func IsTerminal(file *os.File) (bool, error) {
-	return false, errors.New("Not implemented")
+func IsTerminal(file *os.File) bool {
+	panic("Not implemented")
 }
