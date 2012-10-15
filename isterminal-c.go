@@ -1,10 +1,14 @@
-// +build darwin,!cgo
+// +build darwin,cgo
 
 package util
 
+/*
+#include <unistd.h>
+*/
+import "C"
+
 import (
 	"os"
-	"errors"
 )
 
 /*
@@ -17,5 +21,8 @@ Examples:
     term, err := IsTerminal(os.Stderr)
 */
 func IsTerminal(file *os.File) (bool, error) {
-	return false, errors.New("Not implemented")
+	if int(C.isatty(C.int(file.Fd()))) == 0 {
+		return false, nil
+	}
+	return true, nil
 }
