@@ -1,4 +1,4 @@
-// +build darwin,cgo freebsd,cgo
+// +build !windows,!linux,cgo
 
 package util
 

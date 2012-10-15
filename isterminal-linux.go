@@ -1,4 +1,4 @@
-// +build linux netbsd openbsd
+// +build linux
 
 package util
 
