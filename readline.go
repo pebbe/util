@@ -50,8 +50,11 @@ func (r *Reader) ReadLine() (line []byte, err error) {
 	var lines [][]byte
 	for {
 
-		// fill buffer if it is nearly empty, unless error was already received
-		if r.n-r.p < 2 && r.err == nil {
+		// Fill buffer if it is nearly empty, unless error was already received.
+		// Part after the '||' is not necessary, but makes it (perhaps) more
+		// efficient by avoiding the use of partial saves as much as possble.
+		if r.n-r.p < 2 && r.err == nil ||
+			r.p < r.n && r.err == nil && bytes.IndexByte(r.buf[r.p:r.n], '\n') < 0 && bytes.IndexByte(r.buf[r.p:r.n], '\r') < 0 {
 			if r.p > 0 {
 				// make room
 				copy(r.buf, r.buf[r.p:r.n])
