@@ -59,7 +59,7 @@ func (r *Reader) ReadLine() (line []byte, err error) {
 		// Part after the '||' is not necessary, but makes it (perhaps) more
 		// efficient by avoiding the use of partial saves as much as possble.
 		if r.n-r.p < 2 && r.err == nil ||
-			r.p < r.n && r.err == nil && bytes.IndexByte(r.buf[r.p:r.n], '\n') < 0 && bytes.IndexByte(r.buf[r.p:r.n], '\r') < 0 {
+			r.p < r.n && r.err == nil && bytes.IndexByte(r.buf[r.p+2:r.n], '\n') < 0 && bytes.IndexByte(r.buf[r.p+2:r.n], '\r') < 0 {
 			if r.p > 0 {
 				// make room
 				copy(r.buf, r.buf[r.p:r.n])
