@@ -1,8 +1,6 @@
 package util
 
 import (
-	"bufio"
-	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
 	"io"
@@ -59,7 +57,7 @@ Example 2:
     }
 */
 type LinesReader struct {
-	r         *bufio.Reader
+	r         *Reader
 	rz        *gzip.Reader
 	bz2       io.Reader
 	f         *os.File
@@ -68,9 +66,13 @@ type LinesReader struct {
 	needClose bool
 	interrupt chan bool
 }
-
 // Either plain text file, gzip'ed text file with name ending in .gz, or bzip2'ed text file with name ending in .bz2
 func NewLinesReaderFromFile(filename string) (r *LinesReader, err error) {
+	return NewLinesReaderSizeFromFile(filename, 0)
+}
+
+// Either plain text file, gzip'ed text file with name ending in .gz, or bzip2'ed text file with name ending in .bz2
+func NewLinesReaderSizeFromFile(filename string, bufsize int) (r *LinesReader, err error) {
 	r = &LinesReader{interrupt: make(chan bool)}
 	r.f, err = os.Open(filename)
 	if err != nil {
@@ -82,13 +84,13 @@ func NewLinesReaderFromFile(filename string) (r *LinesReader, err error) {
 			r.f.Close()
 			return
 		}
-		r.r = bufio.NewReader(r.rz)
+		r.r = NewReaderSize(r.rz, bufsize)
 		r.isGzip = true
 	} else if strings.HasSuffix(filename, ".bz2") {
 		r.bz2 = bzip2.NewReader(r.f)
-		r.r = bufio.NewReader(r.bz2)
+		r.r = NewReader(r.bz2)
 	} else {
-		r.r = bufio.NewReader(r.f)
+		r.r = NewReader(r.f)
 	}
 	r.isOpen = true
 	r.needClose = true
@@ -96,9 +98,13 @@ func NewLinesReaderFromFile(filename string) (r *LinesReader, err error) {
 }
 
 func NewLinesReaderFromReader(rd io.Reader) (r *LinesReader) {
+	return NewLinesReaderSizeFromReader(rd, 0)
+}
+
+func NewLinesReaderSizeFromReader(rd io.Reader, bufsize int) (r *LinesReader) {
 
 	r = &LinesReader{interrupt: make(chan bool)}
-	r.r = bufio.NewReader(rd)
+	r.r = NewReaderSize(rd, bufsize)
 	r.isOpen = true
 	return
 }
@@ -111,26 +117,18 @@ func (r *LinesReader) ReadLines() <-chan string {
 	go func() {
 	ReadLinesLoop:
 		for {
-			var buf bytes.Buffer
 			if !r.isOpen {
 				break ReadLinesLoop
 			}
-			for {
-				line, isPrefix, err := r.r.ReadLine()
-				buf.Write(line)
-				if err == io.EOF {
-					r.close()
-					break
-				}
-				if err != nil {
-					panic(err)
-				}
-				if !isPrefix {
-					break
-				}
+			s, err := r.r.ReadLineString()
+			if err == io.EOF {
+				r.close()
+				break
 			}
-			s := buf.String()
-			if !r.isOpen && s == "" {
+			if err != nil {
+				panic(err)
+			}
+			if !r.isOpen && len(s) == 0 {
 				break ReadLinesLoop
 			}
 			select {
@@ -153,30 +151,22 @@ func (r *LinesReader) ReadLinesBytes() <-chan []byte {
 	go func() {
 	ReadLinesLoop:
 		for {
-			var buf bytes.Buffer
 			if !r.isOpen {
 				break ReadLinesLoop
 			}
-			for {
-				line, isPrefix, err := r.r.ReadLine()
-				buf.Write(line)
-				if err == io.EOF {
-					r.close()
-					break
-				}
-				if err != nil {
-					panic(err)
-				}
-				if !isPrefix {
-					break
-				}
+			line, err := r.r.ReadLine()
+			if err == io.EOF {
+				r.close()
+				break
 			}
-
-			s := make([]byte, buf.Len())
-			copy(s, buf.Bytes())
-			if !r.isOpen && len(s) == 0 {
+			if err != nil {
+				panic(err)
+			}
+			if !r.isOpen && len(line) == 0 {
 				break ReadLinesLoop
 			}
+			s := make([]byte, len(line))
+			copy(s, line)
 			select {
 			case ch <- s:
 			case <-r.interrupt:
