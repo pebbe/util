@@ -29,10 +29,14 @@ func NewReaderSize(rd io.Reader, size int) *Reader {
 	if size < minReaderBufferSize {
 		size = minReaderBufferSize
 	}
-	return &Reader{
+	r := Reader{
 		buf: make([]byte, size),
 		rd:  rd,
+		n:   2,
 	}
+	r.buf[0] = '\r' // in case first line is empty
+	r.buf[1] = '\n' //
+	return &r
 }
 
 // Same as ReadLine(), but returns string instead of []byte.
@@ -48,6 +52,7 @@ func (r *Reader) ReadLineString() (line string, err error) {
 // Result is only valid until next call to ReadLine() or ReadLineString()
 func (r *Reader) ReadLine() (line []byte, err error) {
 	var lines [][]byte
+	beginning := true
 	for {
 
 		// Fill buffer if it is nearly empty, unless error was already received.
@@ -67,7 +72,7 @@ func (r *Reader) ReadLine() (line []byte, err error) {
 		}
 
 		// if at beginning of line, skip EOL of previous line
-		if len(lines) == 0 {
+		if beginning {
 			var c byte
 			for i := 0; i < 2; i++ {
 				// 1 or 2 times \r or \n, but not \r\r or \n\n
@@ -78,6 +83,7 @@ func (r *Reader) ReadLine() (line []byte, err error) {
 					break
 				}
 			}
+			beginning = false
 		}
 
 		// if error and no more unscanned data, return saved parts if they exist, else return error
