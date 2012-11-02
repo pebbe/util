@@ -84,9 +84,11 @@ func (r *Reader) ReadLine() (line []byte, err error) {
 				r.n -= r.p
 				r.p = 0
 			}
-			var i int
-			i, r.err = r.rd.Read(r.buf[r.n:])
-			r.n += i
+			if r.n < len(r.buf) {
+				var i int
+				i, r.err = r.rd.Read(r.buf[r.n:])
+				r.n += i
+			}
 			scan()
 		}
 	}
