@@ -15,9 +15,14 @@ type Reader struct {
 	rd  io.Reader
 	buf []byte
 	err error
-	p   int // points to first unscanned byte in buffer
-	n   int // points to location after last byte in buffer
-	idx int // points to first \n or \r in buffer
+	p   int // points to first unprocessed byte in buf
+	n   int // points to location after last unprocessed byte in buf
+	idx int // points to first \n or \r (EOL) in unprocessed part of buf
+	// invariants:
+	//   0 <= p <= n <= len(buf)
+	//   if unprocessed bytes available: p < n
+	//   if EOL found: p <= idx < n && p < n
+	//   if EOL not found: idx == -1
 }
 
 // Create new reader with default buffer size.
