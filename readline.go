@@ -17,6 +17,7 @@ type Reader struct {
 	err error
 	p   int // points to first unscanned byte in buffer
 	n   int // points to location after last byte in buffer
+	idx int // points to first \n or \r in buffer
 }
 
 // Create new reader with default buffer size.
@@ -32,7 +33,9 @@ func NewReaderSize(rd io.Reader, size int) *Reader {
 	r := Reader{
 		buf: make([]byte, size),
 		rd:  rd,
+		p:   0,
 		n:   2,
+		idx: 0,
 	}
 	r.buf[0] = '\r' // in case first line is empty
 	r.buf[1] = '\n' //
@@ -51,38 +54,63 @@ func (r *Reader) ReadLineString() (line string, err error) {
 // Last line without EOL is allowed.
 // Result is only valid until next call to ReadLine() or ReadLineString()
 func (r *Reader) ReadLine() (line []byte, err error) {
-	var lines [][]byte
-	beginning := true
-	for {
 
-		// Fill buffer if it is nearly empty, unless error was already received.
-		// Part after the '||' is not necessary, but makes it (perhaps) more
-		// efficient by avoiding the use of partial saves as much as possble.
-		if r.n-r.p < 2 && r.err == nil ||
-			r.p < r.n && r.err == nil && bytes.IndexByte(r.buf[r.p+2:r.n], '\n') < 0 && bytes.IndexByte(r.buf[r.p+2:r.n], '\r') < 0 {
+	// Sets r.idx to first \n or \r, or -1 if not found.
+	scan := func() {
+		end := r.n
+		i1 := bytes.IndexByte(r.buf[r.p:end], '\n')
+		if i1 >= 0 {
+			end = r.p + i1
+		}
+		i2 := bytes.IndexByte(r.buf[r.p:end], '\r')
+		if i2 >= 0 {
+			r.idx = r.p + i2
+		} else if i1 >= 0 {
+			r.idx = r.p + i1
+		} else {
+			r.idx = -1
+		}
+	}
+
+	// Fills buffer if no \n or \r found and no error yet,
+	// and then rescans for first \n or \r.
+	fill := func() {
+		if r.idx < 0 && r.err == nil {
 			if r.p > 0 {
 				// make room
-				copy(r.buf, r.buf[r.p:r.n])
+				if r.p < r.n {
+					copy(r.buf, r.buf[r.p:r.n])
+				}
 				r.n -= r.p
 				r.p = 0
 			}
 			var i int
 			i, r.err = r.rd.Read(r.buf[r.n:])
 			r.n += i
+			scan()
 		}
+	}
+
+	var lines [][]byte
+	beginning := true
+	for {
+
+		fill()
 
 		// if at beginning of line, skip EOL of previous line
 		if beginning {
 			var c byte
 			for i := 0; i < 2; i++ {
 				// 1 or 2 times \r or \n, but not \r\r or \n\n
-				if r.p < r.n && (r.buf[r.p] == '\n' || r.buf[r.p] == '\r') && r.buf[r.p] != c {
+				if r.idx == r.p && r.buf[r.p] != c {
 					c = r.buf[r.p]
 					r.p += 1
+					scan() // reset r.idx
 				} else {
 					break
 				}
 			}
+			fill()
 			beginning = false
 		}
 
@@ -96,26 +124,14 @@ func (r *Reader) ReadLine() (line []byte, err error) {
 		}
 
 		if r.p < r.n {
-			// find next EOL, can start with \n or \r
-			i := bytes.IndexByte(r.buf[r.p:r.n], '\n')
-			if i < 0 {
-				i = r.n
-			}
-			j := bytes.IndexByte(r.buf[r.p:r.n], '\r')
-			if j < 0 {
-				j = r.n
-			}
-			if j < i {
-				i = j
-			}
-			if i == r.n { // no EOL found
+			if r.idx < 0 { // no EOL found
 				buf := make([]byte, r.n-r.p)
 				copy(buf, r.buf[r.p:r.n])
 				lines = append(lines, buf)
 				r.p = r.n
 			} else { // EOL found
 				p := r.p
-				r.p += i
+				r.p = r.idx
 				return buildline(lines, r.buf[p:r.p]), nil
 			}
 		}
