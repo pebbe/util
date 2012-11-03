@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// Implements io.ReadCloser
 type ReadCloser struct {
 	fp     *os.File
 	gz     *gzip.Reader
