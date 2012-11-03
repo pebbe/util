@@ -10,9 +10,9 @@ import (
 
 // Implements io.ReadCloser
 type ReadCloser struct {
+	r      io.Reader
 	fp     *os.File
 	gz     *gzip.Reader
-	bz2    io.Reader
 	isOpen bool
 	isGzip bool
 	isBz2  bool
@@ -33,10 +33,13 @@ func Open(filename string) (rc *ReadCloser, err error) {
 			rc.fp.Close()
 			return
 		}
+		rc.r = rc.gz
 		rc.isGzip = true
 	} else if strings.HasSuffix(filename, ".bz2") {
-		rc.bz2 = bzip2.NewReader(rc.fp)
+		rc.r = bzip2.NewReader(rc.fp)
 		rc.isBz2 = true
+	} else {
+		rc.r = rc.fp
 	}
 
 	rc.isOpen = true
@@ -47,13 +50,7 @@ func (rc *ReadCloser) Read(p []byte) (n int, err error) {
 	if !rc.isOpen {
 		panic("ReadCloser is closed")
 	}
-	if rc.isGzip {
-		return rc.gz.Read(p)
-	}
-	if rc.isBz2 {
-		return rc.bz2.Read(p)
-	}
-	return rc.fp.Read(p)
+	return rc.r.Read(p)
 }
 
 func (rc *ReadCloser) Close() (err error) {
