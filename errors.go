@@ -17,7 +17,7 @@ func CheckErr(err error) {
 	}
 }
 
-func WarnErr(err error) {
+func WarnErr(err error) error {
 	if err != nil {
 		f := log.Flags()
 		log.SetFlags(0)
@@ -29,4 +29,5 @@ func WarnErr(err error) {
 		}
 		log.SetFlags(f)
 	}
+	return err
 }
