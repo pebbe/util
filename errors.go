@@ -1,32 +1,41 @@
 package util
 
 import (
+	"bytes"
+	"fmt"
 	"log"
 	"runtime"
 )
 
-func CheckErr(err error) {
+func makeErr(err error, msg ...interface{}) string {
+	var b bytes.Buffer
+	_, filename, lineno, ok := runtime.Caller(2)
+	if ok {
+		b.WriteString(fmt.Sprintf("%v:%v: %v", filename, lineno, err))
+	} else {
+		b.WriteString(err.Error())
+	}
+	if len(msg) > 0 {
+		b.WriteString(",")
+		for _, m := range msg {
+			b.WriteString(fmt.Sprintf(" %v", m))
+		}
+	}
+	return b.String()
+}
+
+func CheckErr(err error, msg ...interface{}) {
 	if err != nil {
 		log.SetFlags(0)
-		_, filename, lineno, ok := runtime.Caller(1)
-		if ok {
-			log.Fatalf("%v:%v: %v\n", filename, lineno, err)
-		} else {
-			log.Fatalln(err)
-		}
+		log.Fatalln(makeErr(err, msg...))
 	}
 }
 
-func WarnErr(err error) error {
+func WarnErr(err error, msg ...interface{}) error {
 	if err != nil {
 		f := log.Flags()
 		log.SetFlags(0)
-		_, filename, lineno, ok := runtime.Caller(1)
-		if ok {
-			log.Printf("%v:%v: %v\n", filename, lineno, err)
-		} else {
-			log.Println(err)
-		}
+		log.Println(makeErr(err, msg...))
 		log.SetFlags(f)
 	}
 	return err
