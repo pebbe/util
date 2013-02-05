@@ -6,4 +6,4 @@ Go package _util_ provides small utility functions.
 
 ## Docs
 
- * [package help](http://gopkgdoc.appspot.com/pkg/github.com/pebbe/util)
+ * [package help](http://godoc.org/github.com/pebbe/util)
