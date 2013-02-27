@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 )
 
@@ -36,6 +37,7 @@ func Open(filename string) (rc io.ReadCloser, err error) {
 			return nil, err
 		}
 		r.r = r.gz
+		runtime.SetFinalizer(&r, (*ReadCloser).Close)
 		return r, nil
 	}
 
@@ -46,6 +48,7 @@ func Open(filename string) (rc io.ReadCloser, err error) {
 			isBzip2: true,
 			isOpen:  true,
 		}
+		runtime.SetFinalizer(&r, (*ReadCloser).Close)
 		return r, nil
 	}
 
