@@ -19,14 +19,14 @@ type ReadCloser struct {
 }
 
 // Opens for reading a plain file, gzip'ed file (extension .gz), or bzip2'ed file (extension .bz2)
-func Open(filename string) (rc io.ReadCloser, err error) {
+func Open(filename string) (rc *ReadCloser, err error) {
 	fp, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 
 	if strings.HasSuffix(filename, ".gz") {
-		r := ReadCloser{
+		r := &ReadCloser{
 			fp:     fp,
 			isGzip: true,
 			isOpen: true,
@@ -37,22 +37,28 @@ func Open(filename string) (rc io.ReadCloser, err error) {
 			return nil, err
 		}
 		r.r = r.gz
-		runtime.SetFinalizer(&r, (*ReadCloser).Close)
+		runtime.SetFinalizer(r, (*ReadCloser).Close)
 		return r, nil
 	}
 
 	if strings.HasSuffix(filename, ".bz2") {
-		r := ReadCloser{
+		r := &ReadCloser{
 			fp:      fp,
 			r:       bzip2.NewReader(fp),
 			isBzip2: true,
 			isOpen:  true,
 		}
-		runtime.SetFinalizer(&r, (*ReadCloser).Close)
+		runtime.SetFinalizer(r, (*ReadCloser).Close)
 		return r, nil
 	}
 
-	return fp, nil
+	r := &ReadCloser{
+		fp:      fp,
+		r:       fp,
+		isOpen:  true,
+	}
+	runtime.SetFinalizer(r, (*ReadCloser).Close)
+	return r, nil
 }
 
 func (rc ReadCloser) Read(p []byte) (n int, err error) {
