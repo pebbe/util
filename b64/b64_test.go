@@ -14,6 +14,7 @@ func ExampleEncode() {
 	fmt.Println(b64.Encode(1000))
 	fmt.Println(b64.Encode(10000))
 	fmt.Println(b64.Encode(math.MaxUint32))
+	fmt.Println(b64.Encode(math.MaxUint64))
 
 	// Output:
 	// A
@@ -22,10 +23,11 @@ func ExampleEncode() {
 	// Po
 	// CcQ
 	// D/////
+	// P//////////
 }
 
 func ExampleDecode() {
-	var v uint32
+	var v uint64
 	var e error
 
 	v, e = b64.Decode("A")
@@ -46,7 +48,13 @@ func ExampleDecode() {
 	v, e = b64.Decode("D/////")
 	fmt.Println(v, e)
 
-	v, e = b64.Decode("D//@//")
+	v, e = b64.Decode("P//////////")
+	fmt.Println(v, e)
+
+	v, e = b64.Decode("P///////////")
+	fmt.Println(v, e)
+
+	v, e = b64.Decode("P///@//////")
 	fmt.Println(v, e)
 
 	// Output:
@@ -56,5 +64,7 @@ func ExampleDecode() {
 	// 1000 <nil>
 	// 10000 <nil>
 	// 4294967295 <nil>
+	// 18446744073709551615 <nil>
+	// 0 Type uint64 cannot store decoded base64 value: P///////////
 	// 0 Illegal character in base64 value: @
 }

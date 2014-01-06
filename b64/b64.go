@@ -5,7 +5,7 @@ import "errors"
 var (
 	list = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
-	index = []uint32{
+	index = []uint64{
 		99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
 		99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
 		99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 62, 99, 99, 99, 63,
@@ -25,34 +25,43 @@ var (
 	}
 )
 
-func Encode(val uint32) string {
-	var result [6]uint8
-
-	result[0] = list[(val&0xc0000000)>>30]
-	result[1] = list[(val&0x3f000000)>>24]
-	result[2] = list[(val&0x00fc0000)>>18]
-	result[3] = list[(val&0x0003f000)>>12]
-	result[4] = list[(val&0x00000fc0)>>6]
-	result[5] = list[val&0x0000003f]
-	for i := 0; i < 5; i++ {
-		if result[i] != list[0] {
-			return string(result[i:])
+func Encode(val uint64) string {
+	chunks := 1
+	if val != 0 {
+		val2 := val
+		for {
+			val2 >>= 6
+			if val2 == 0 {
+				break
+			}
+			chunks++
 		}
 	}
-	return string(result[5:])
+	result := make([]uint8, chunks)
+	for i := 0; i < chunks; i++ {
+		shift := uint64(i * 6)
+		mask := uint64(0x3f) << shift
+		result[chunks-i-1] = list[(val&mask)>>shift]
+	}
+	return string(result)
 }
 
-func Decode(val string) (uint32, error) {
-	var v uint32
-	var offset uint32
+func Decode(val string) (uint64, error) {
+	var result uint64
+	var offset uint64
 
 	for i := len(val) - 1; i >= 0; i-- {
 		tmp := index[val[i]]
 		if tmp == 99 {
 			return 0, errors.New("Illegal character in base64 value: " + val[i:i+1])
 		}
-		v |= tmp << offset
+
+		if (tmp<<offset)>>offset != tmp {
+			return 0, errors.New("Type uint64 cannot store decoded base64 value: " + val)
+		}
+
+		result |= tmp << offset
 		offset += 6
 	}
-	return v, nil
+	return result, nil
 }
