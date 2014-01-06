@@ -1,7 +1,7 @@
 package b64_test
 
 import (
-	"github.com/pebbe/b64"
+	"github.com/pebbe/util/b64"
 
 	"fmt"
 	"math"
